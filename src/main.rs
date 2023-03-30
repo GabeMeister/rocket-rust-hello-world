@@ -2,6 +2,10 @@
 
 #[macro_use]
 extern crate rocket;
+extern crate dotenv;
+
+use dotenv::dotenv;
+use std::env;
 
 #[cfg(test)]
 mod tests;
@@ -16,12 +20,18 @@ fn hello() -> &'static str {
     "Hello, world!"
 }
 
-// #[get("/data")]
-// fn select_something() -> String {
-
-// }
+#[get("/environment")]
+fn environment() -> String {
+    env::var("RUST_ENV").unwrap_or("yikes".to_string())
+}
 
 fn main() {
-    rocket::ignite().mount("/", routes![index, hello]).launch();
-    println!("HELLO!");
+    dotenv().ok();
+
+    let app_env = env::var("RUST_ENV").unwrap_or("yikes".to_string());
+    dbg!(app_env);
+
+    rocket::ignite()
+        .mount("/", routes![index, hello, environment])
+        .launch();
 }
