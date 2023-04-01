@@ -2,9 +2,16 @@
 name = "hello_world"
 version = "0.0.0"
 publish = false
+edition = "2021"
 
 [dependencies]
-rocket = "0.4.11"
+rocket = { version = "=0.5.0-rc.3", features = ["json"]}
 tokio = { version = "1", features = ["full"] }
-sqlx = { version = "0.6", features = [ "runtime-tokio-rustls" ] }
+sqlx = { version = "0.6", features = [ "runtime-tokio-rustls", "postgres", "macros" ] }
 dotenv = "0.15.0"
+serde = { version = "1.0", features = ["derive"] }
+
+# [dependencies.rocket_contrib]
+# version = "0.4.10"
+# default-features = false
+# features = ["json"]
