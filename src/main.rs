@@ -50,8 +50,8 @@ async fn test2(id: i32, gabe: &State<GabeTest>) -> Json<Option<User>> {
     }
 }
 
-#[launch]
-async fn rocket() -> _ {
+#[rocket::main]
+async fn main() -> Result<(), rocket::Error> {
     dotenv().ok();
 
     let db_url = env::var("DATABASE_URL").unwrap();
@@ -65,4 +65,8 @@ async fn rocket() -> _ {
     rocket::build()
         .manage(GabeTest { pool })
         .mount("/", routes![index, test, test2])
+        .launch()
+        .await?;
+
+    Ok(())
 }
