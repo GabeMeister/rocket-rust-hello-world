@@ -50,8 +50,7 @@ async fn test2(id: i32, gabe: &State<GabeTest>) -> Json<Option<User>> {
     }
 }
 
-#[rocket::main]
-async fn main() -> Result<(), rocket::Error> {
+async fn rocket() {
     dotenv().ok();
 
     let db_url = env::var("DATABASE_URL").unwrap();
@@ -62,11 +61,13 @@ async fn main() -> Result<(), rocket::Error> {
         .await
         .expect("Unable to connect to Postgres");
 
-    rocket::build()
+    let _ = rocket::build()
         .manage(GabeTest { pool })
         .mount("/", routes![index, test, test2])
         .launch()
-        .await?;
+        .await;
+}
 
-    Ok(())
+fn main() {
+    let _ = rocket();
 }

@@ -10,8 +10,3 @@ tokio = { version = "1", features = ["full"] }
 sqlx = { version = "0.6", features = [ "runtime-tokio-rustls", "postgres", "macros" ] }
 dotenv = "0.15.0"
 serde = { version = "1.0", features = ["derive"] }
-
-# [dependencies.rocket_contrib]
-# version = "0.4.10"
-# default-features = false
-# features = ["json"]
