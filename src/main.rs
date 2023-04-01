@@ -2,6 +2,9 @@
 extern crate rocket;
 extern crate dotenv;
 
+mod cors;
+
+use cors::CORS;
 use dotenv::dotenv;
 use rocket::serde::json::Json;
 use rocket::serde::{Deserialize, Serialize};
@@ -133,15 +136,18 @@ async fn rocket() -> _ {
         .await
         .expect("Unable to connect to Postgres");
 
-    rocket::build().manage(ApiState { pool }).mount(
-        "/",
-        routes![
-            index,
-            get_user,
-            get_all_users,
-            insert_user,
-            update_user,
-            delete_user
-        ],
-    )
+    rocket::build()
+        .manage(ApiState { pool })
+        .attach(CORS)
+        .mount(
+            "/",
+            routes![
+                index,
+                get_user,
+                get_all_users,
+                insert_user,
+                update_user,
+                delete_user
+            ],
+        )
 }
