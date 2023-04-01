@@ -18,6 +18,7 @@ struct User {
 #[derive(Debug, Deserialize)]
 struct NewUser {
     name: String,
+    password: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -77,8 +78,9 @@ async fn insert_user(user: Json<NewUser>, state: &State<ApiState>) -> Json<NewUs
     dbg!(user.name.clone());
 
     let result: Result<i32, Error> =
-        sqlx::query_scalar("insert into users (name) values ($1) returning id")
+        sqlx::query_scalar("insert into users (name, password) values ($1, $2) returning id")
             .bind(user.name.clone())
+            .bind(user.password.clone())
             .fetch_one(&state.pool)
             .await;
 
