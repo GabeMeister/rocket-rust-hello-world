@@ -1,0 +1,7 @@
+#!/bin/bash
+
+if [ "$1" = "dev" ]; then
+  cargo watch -c -x "run"
+else
+  echo "Usage: $0 [dev]"
+fi

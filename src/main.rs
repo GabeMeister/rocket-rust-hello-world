@@ -4,10 +4,10 @@ extern crate dotenv;
 
 use dotenv::dotenv;
 use rocket::serde::json::Json;
-use rocket::serde::Serialize;
+use rocket::serde::{Deserialize, Serialize};
 use rocket::State;
 use sqlx::postgres::PgPoolOptions;
-use sqlx::{FromRow, PgPool};
+use sqlx::{Error, FromRow, PgPool};
 use std::env;
 
 #[derive(Debug, FromRow, Serialize)]
@@ -15,8 +15,28 @@ struct User {
     id: i32,
     name: String,
 }
-struct GabeTest {
+#[derive(Debug, Deserialize)]
+struct NewUser {
+    name: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct UpdateUserBody {
+    name: String,
+}
+
+struct ApiState {
     pool: PgPool,
+}
+
+#[derive(Debug, Serialize)]
+struct SuccessFailResponse {
+    success: bool,
+}
+
+#[derive(Debug, Serialize)]
+struct NewUserIdResponse {
+    id: i32,
 }
 
 #[get("/")]
@@ -24,21 +44,11 @@ fn index() -> &'static str {
     "Hello, world!"
 }
 
-#[get("/test")]
-async fn test(gabe: &State<GabeTest>) -> Json<Option<User>> {
-    let user = sqlx::query_as::<_, User>("select id, name from users where id=$1")
-        .bind(10)
-        .fetch_one(&gabe.pool)
-        .await;
-
-    Json(Some(user.unwrap()))
-}
-
-#[get("/test2/<id>")]
-async fn test2(id: i32, gabe: &State<GabeTest>) -> Json<Option<User>> {
+#[get("/user/<id>")]
+async fn get_user(id: i32, state: &State<ApiState>) -> Json<Option<User>> {
     let user = sqlx::query_as::<_, User>("select id, name from users where id=$1")
         .bind(id)
-        .fetch_one(&gabe.pool)
+        .fetch_one(&state.pool)
         .await;
 
     match user {
@@ -47,6 +57,65 @@ async fn test2(id: i32, gabe: &State<GabeTest>) -> Json<Option<User>> {
             dbg!(e);
             Json(None)
         }
+    }
+}
+
+#[get("/user/all")]
+async fn get_all_users(state: &State<ApiState>) -> Json<Vec<User>> {
+    let result = sqlx::query_as::<_, User>("select id, name from users")
+        .fetch_all(&state.pool)
+        .await;
+
+    match result {
+        Ok(all_users) => Json(all_users),
+        Err(_) => Json(Vec::<User>::new()),
+    }
+}
+
+#[post("/user", data = "<user>")]
+async fn insert_user(user: Json<NewUser>, state: &State<ApiState>) -> Json<NewUserIdResponse> {
+    dbg!(user.name.clone());
+
+    let result: Result<i32, Error> =
+        sqlx::query_scalar("insert into users (name) values ($1) returning id")
+            .bind(user.name.clone())
+            .fetch_one(&state.pool)
+            .await;
+
+    match result {
+        Ok(id) => Json(NewUserIdResponse { id }),
+        Err(_) => Json(NewUserIdResponse { id: -1 }),
+    }
+}
+
+#[patch("/user/<id>", data = "<user>")]
+async fn update_user(
+    id: i32,
+    user: Json<UpdateUserBody>,
+    state: &State<ApiState>,
+) -> Json<SuccessFailResponse> {
+    let result = sqlx::query("update users set name=$1 where id=$2")
+        .bind(user.name.clone())
+        .bind(id)
+        .execute(&state.pool)
+        .await;
+
+    match result {
+        Ok(_) => Json(SuccessFailResponse { success: true }),
+        Err(_) => Json(SuccessFailResponse { success: false }),
+    }
+}
+
+#[delete("/user/<id>")]
+async fn delete_user(id: i32, state: &State<ApiState>) -> Json<SuccessFailResponse> {
+    let result = sqlx::query("delete from users where id=$1")
+        .bind(id)
+        .execute(&state.pool)
+        .await;
+
+    match result {
+        Ok(_) => Json(SuccessFailResponse { success: true }),
+        Err(_) => Json(SuccessFailResponse { success: false }),
     }
 }
 
@@ -62,7 +131,15 @@ async fn rocket() -> _ {
         .await
         .expect("Unable to connect to Postgres");
 
-    rocket::build()
-        .manage(GabeTest { pool })
-        .mount("/", routes![index, test, test2])
+    rocket::build().manage(ApiState { pool }).mount(
+        "/",
+        routes![
+            index,
+            get_user,
+            get_all_users,
+            insert_user,
+            update_user,
+            delete_user
+        ],
+    )
 }
