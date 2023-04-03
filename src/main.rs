@@ -44,8 +44,10 @@ struct NewUserIdResponse {
 }
 
 #[get("/")]
-fn index() -> &'static str {
-    "Hello, world!"
+fn index() -> String {
+    let db_url = env::var("RUST_ENV").unwrap();
+
+    format!("It works! {db_url}")
 }
 
 #[get("/user/<id>")]
